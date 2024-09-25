@@ -16,7 +16,6 @@
 				background-color: #f5f5f5;
 			}
 			.qr-container {
-				// margin-top: 2rem;
 				text-align: center;
 			}
 			.qr-container canvas {
@@ -128,6 +127,19 @@
 
 				<!-- QR Code Container -->
 				<div id="qrcode" class="qr-container"></div>
+
+				<!-- Download Button -->
+				<div id="downloadContainer" class="field is-hidden">
+					<div class="control">
+						<a
+							id="downloadLink"
+							class="button is-success is-fullwidth"
+							download="venmo_qr_code.png"
+						>
+							Download QR Code
+						</a>
+					</div>
+				</div>
 			</div>
 		</section>
 
@@ -153,21 +165,12 @@
 				.getElementById('qrSizeSlider')
 				.addEventListener('input', updateQrSizeDisplay);
 
-			// Function to restrict input to numbers only
-			document.getElementById('amount').addEventListener('input', function (e) {
-				var value = this.value;
-				// Remove any characters that are not numbers or decimal points
-				value = value.replace(/[^0-9.]/g, '');
-				// Ensure only one decimal point
-				var parts = value.split('.');
-				if (parts.length > 2) {
-					value = parts[0] + '.' + parts.slice(1).join('');
-				}
-				// Update the input value
-				this.value = value;
-			});
-
+			// Function to generate the QR code and handle download functionality
 			function generateQRCode() {
+				// Hide the download button initially
+				var downloadContainer = document.getElementById('downloadContainer');
+				downloadContainer.classList.add('is-hidden');
+
 				var recipients = document.getElementById('recipients').value.trim();
 				var amount = document.getElementById('amount').value.trim();
 				var note = document.getElementById('note').value.trim();
@@ -218,6 +221,15 @@
 					});
 
 					qrDiv.appendChild(qr.canvas);
+
+					// Prepare the download link
+					var qrDataUrl = qr.canvas.toDataURL('image/png');
+					var downloadLink = document.getElementById('downloadLink');
+					downloadLink.href = qrDataUrl;
+					downloadLink.download = 'venmo_qr_code.png';
+
+					// Show the download button
+					downloadContainer.classList.remove('is-hidden');
 				} catch (e) {
 					alert('Error generating QR code: ' + e.message);
 				}
