@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Venmo QR Code Generator</title>
+		<!-- Viewport meta tag for mobile scaling -->
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!-- Include Bulma CSS via CDN -->
+		<link
+			rel="stylesheet"
+			href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+		/>
+		<!-- Custom Styles -->
+		<style>
+			body {
+				background-color: #f5f5f5;
+			}
+			.qr-container {
+				// margin-top: 2rem;
+				text-align: center;
+			}
+			.qr-container canvas {
+				max-width: 50vmin;
+				height: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<section class="section">
+			<div class="container">
+				<h1 class="title has-text-centered">Venmo QR Code Generator</h1>
+				<h1 class="subtitle has-text-centered">by Andrei Cozma</h1>
+				<form id="qrForm">
+					<!-- Transaction Type -->
+					<div class="field">
+						<label class="label">Transaction Type</label>
+						<div class="control">
+							<label class="radio">
+								<input type="radio" name="txnType" value="pay" checked />
+								Pay
+							</label>
+							<label class="radio">
+								<input type="radio" name="txnType" value="charge" />
+								Request
+							</label>
+						</div>
+					</div>
+					<!-- Recipient Username -->
+					<div class="field">
+						<label class="label" for="recipients">Recipient Username</label>
+						<div class="control">
+							<input
+								class="input"
+								type="text"
+								id="recipients"
+								placeholder="Venmo username"
+							/>
+						</div>
+					</div>
+					<!-- Amount -->
+					<div class="field">
+						<label class="label" for="amount">Amount</label>
+						<div class="control">
+							<input
+								class="input"
+								type="number"
+								id="amount"
+								placeholder="Amount in dollars"
+								step="0.01"
+								min="0"
+								inputmode="decimal"
+							/>
+						</div>
+					</div>
+					<!-- Note -->
+					<div class="field">
+						<label class="label" for="note">Note</label>
+						<div class="control">
+							<textarea
+								class="textarea"
+								id="note"
+								placeholder="Optional message"
+							></textarea>
+						</div>
+					</div>
+					<!-- QR Code Size Slider -->
+					<div class="field">
+						<label class="label" for="qrSizeSlider"
+							>Resolution: <span id="qrSizeDisplay">??</span> px</label
+						>
+						<div class="control">
+							<input
+								type="range"
+								id="qrSizeSlider"
+								min="0"
+								max="3"
+								value="3"
+								step="1"
+							/>
+						</div>
+					</div>
+					<!-- Generate Button -->
+					<div class="field">
+						<div class="control">
+							<button
+								type="button"
+								class="button is-primary is-fullwidth"
+								onclick="generateQRCode()"
+							>
+								Generate QR Code
+							</button>
+						</div>
+					</div>
+				</form>
+
+				<!-- Display Generated URL -->
+				<div id="urlContainer" class="field is-hidden">
+					<label class="label" for="generatedUrl">Generated URL</label>
+					<div class="control">
+						<input
+							class="input is-readonly"
+							type="text"
+							id="generatedUrl"
+							readonly
+						/>
+					</div>
+				</div>
+
+				<!-- QR Code Container -->
+				<div id="qrcode" class="qr-container"></div>
+			</div>
+		</section>
+
+		<!-- Include QRious library -->
+		<script src="https://unpkg.com/qrious/dist/qrious.min.js"></script>
+		<script>
+			// Allowed QR code sizes in pixels
+			const qrSizes = [128, 256, 512, 1024];
+
+			// Function to update the displayed QR code size
+			function updateQrSizeDisplay() {
+				const qrSizeSlider = document.getElementById('qrSizeSlider');
+				const qrSizeDisplay = document.getElementById('qrSizeDisplay');
+				const selectedSize = qrSizes[qrSizeSlider.value];
+				qrSizeDisplay.textContent = selectedSize;
+			}
+
+			// Initialize QR size display
+			updateQrSizeDisplay();
+
+			// Update display when slider value changes
+			document
+				.getElementById('qrSizeSlider')
+				.addEventListener('input', updateQrSizeDisplay);
+
+			// Function to restrict input to numbers only
+			document.getElementById('amount').addEventListener('input', function (e) {
+				var value = this.value;
+				// Remove any characters that are not numbers or decimal points
+				value = value.replace(/[^0-9.]/g, '');
+				// Ensure only one decimal point
+				var parts = value.split('.');
+				if (parts.length > 2) {
+					value = parts[0] + '.' + parts.slice(1).join('');
+				}
+				// Update the input value
+				this.value = value;
+			});
+
+			function generateQRCode() {
+				var recipients = document.getElementById('recipients').value.trim();
+				var amount = document.getElementById('amount').value.trim();
+				var note = document.getElementById('note').value.trim();
+				var txnType = document.querySelector(
+					'input[name="txnType"]:checked'
+				).value;
+				var qrSizeIndex = document.getElementById('qrSizeSlider').value;
+				var qrSize = qrSizes[qrSizeIndex];
+
+				// Input validation
+				if (!recipients || !amount) {
+					alert('Recipient and amount are required.');
+					return;
+				}
+
+				if (isNaN(amount) || Number(amount) <= 0) {
+					alert('Please enter a valid amount.');
+					return;
+				}
+
+				// Limit note length to prevent QR code overflow
+				if (note.length > 150) {
+					alert('Note is too long. Please limit to 150 characters.');
+					return;
+				}
+
+				var venmoURL = 'venmo://paycharge?txn=' + txnType;
+				venmoURL += '&recipients=' + encodeURIComponent(recipients);
+				venmoURL += '&amount=' + encodeURIComponent(amount);
+				if (note) {
+					venmoURL += '&note=' + encodeURIComponent(note);
+				}
+
+				// Display the generated URL
+				var urlContainer = document.getElementById('urlContainer');
+				var generatedUrlInput = document.getElementById('generatedUrl');
+				generatedUrlInput.value = venmoURL;
+				urlContainer.classList.remove('is-hidden');
+
+				// Clear previous QR code
+				var qrDiv = document.getElementById('qrcode');
+				qrDiv.innerHTML = '';
+
+				try {
+					var qr = new QRious({
+						value: venmoURL,
+						size: qrSize,
+					});
+
+					qrDiv.appendChild(qr.canvas);
+				} catch (e) {
+					alert('Error generating QR code: ' + e.message);
+				}
+			}
+		</script>
+	</body>
+</html>
