@@ -18,7 +18,7 @@
 			.qr-container {
 				text-align: center;
 			}
-			.qr-container canvas {
+			.qr-container img {
 				max-width: 50vmin;
 				height: auto;
 			}
@@ -220,12 +220,15 @@
 						size: qrSize,
 					});
 
-					qrDiv.appendChild(qr.canvas);
+					// Create an image element
+					var img = document.createElement('img');
+					img.src = qr.toDataURL('image/png');
+
+					qrDiv.appendChild(img);
 
 					// Prepare the download link
-					var qrDataUrl = qr.canvas.toDataURL('image/png');
 					var downloadLink = document.getElementById('downloadLink');
-					downloadLink.href = qrDataUrl;
+					downloadLink.href = img.src;
 					downloadLink.download = 'venmo_qr_code.png';
 
 					// Show the download button
